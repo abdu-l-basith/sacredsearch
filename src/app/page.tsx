@@ -4,15 +4,23 @@ import { useState, useEffect } from "react";
 import { db } from "./firebase";
 import { collection, onSnapshot } from "firebase/firestore";
 
+// Define the Team type
+type Team = {
+  id: string;
+  name: string;
+  score: number;
+};
+
 export default function Scoreboard() {
-  const [teams, setTeams] = useState([]);
+  // Explicitly type the state
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(db, "teams"),
       (snapshot) => {
-        const teamsData = snapshot.docs.map((doc) => ({
+        const teamsData: Team[] = snapshot.docs.map((doc) => ({
           id: doc.id,
           name: doc.data().teamName || doc.data().username,
           score: doc.data().mark || 0,
