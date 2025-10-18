@@ -2,9 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { db } from "./firebase";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, DocumentData } from "firebase/firestore";
 
-// Define the Team type
+// Define Firestore document type
+type TeamDoc = {
+  teamName?: string;
+  username?: string;
+  mark?: number;
+};
+
+// Define Team type for state
 type Team = {
   id: string;
   name: string;
@@ -12,7 +19,6 @@ type Team = {
 };
 
 export default function Scoreboard() {
-  // Explicitly type the state
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,11 +26,15 @@ export default function Scoreboard() {
     const unsubscribe = onSnapshot(
       collection(db, "teams"),
       (snapshot) => {
-        const teamsData: Team[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          name: doc.data().teamName || doc.data().username,
-          score: doc.data().mark || 0,
-        }));
+        const teamsData: Team[] = snapshot.docs.map((doc) => {
+          const data = doc.data() as TeamDoc; // Type assertion
+          return {
+            id: doc.id,
+            name: data.teamName || data.username || "Unknown",
+            score: data.mark || 0,
+          };
+        });
+
         // Sort descending by score
         teamsData.sort((a, b) => b.score - a.score);
         setTeams(teamsData);
@@ -49,7 +59,7 @@ export default function Scoreboard() {
         {teams.map((team, index) => (
           <div
             key={team.id}
-            className={`bg-white shadow-xl rounded-2xl p-6 flex flex-col items-center justify-center transition transform hover:scale-105`}
+            className="bg-white shadow-xl rounded-2xl p-6 flex flex-col items-center justify-center transition transform hover:scale-105"
           >
             <span className="text-lg font-medium text-gray-500 mb-2">#{index + 1}</span>
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-3">{team.name}</h2>

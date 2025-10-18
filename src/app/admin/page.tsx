@@ -11,22 +11,40 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 
+// Define Team type
+type Team = {
+  id: string;
+  name: string;
+  username: string;
+  password: string;
+  score: number;
+};
+
 export default function AdminPage() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [password, setPassword] = useState("");
-  const [teams, setTeams] = useState<any[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [newTeam, setNewTeam] = useState({ name: "", username: "", password: "" });
   const [loading, setLoading] = useState(false);
 
+  // --- Fetch teams in real-time ---
   useEffect(() => {
     if (!loggedIn) return;
+
     const unsub = onSnapshot(collection(db, "teams"), (snapshot) => {
-      const teamData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const teamData: Team[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name || "",
+          username: data.username || "",
+          password: data.password || "",
+          score: data.score || 0,
+        };
+      });
       setTeams(teamData);
     });
+
     return () => unsub();
   }, [loggedIn]);
 
@@ -54,6 +72,7 @@ export default function AdminPage() {
       setNewTeam({ name: "", username: "", password: "" });
     } catch (e) {
       console.error("Error adding team:", e);
+      alert("Error adding team. Check console.");
     }
     setLoading(false);
   };
@@ -61,7 +80,12 @@ export default function AdminPage() {
   // --- Delete Team ---
   const handleDeleteTeam = async (id: string) => {
     if (confirm("Are you sure you want to delete this team?")) {
-      await deleteDoc(doc(db, "teams", id));
+      try {
+        await deleteDoc(doc(db, "teams", id));
+      } catch (e) {
+        console.error("Error deleting team:", e);
+        alert("Error deleting team. Check console.");
+      }
     }
   };
 
@@ -82,7 +106,7 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  // --- Render UI ---
+  // --- Render Login Page ---
   if (!loggedIn) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
@@ -106,10 +130,12 @@ export default function AdminPage() {
     );
   }
 
+  // --- Render Admin Dashboard ---
   return (
     <div className="min-h-screen bg-gray-950 text-white p-4">
       <h1 className="text-3xl font-bold mb-6 text-center">Admin Dashboard</h1>
 
+      {/* Clear Program Button */}
       <div className="flex justify-center mb-6">
         <button
           onClick={handleClearProgram}
@@ -120,6 +146,7 @@ export default function AdminPage() {
         </button>
       </div>
 
+      {/* Add New Team Form */}
       <div className="max-w-md mx-auto bg-gray-900 p-4 rounded-xl shadow-md mb-8">
         <h2 className="text-xl font-semibold mb-3">Add New Team</h2>
         <input
@@ -149,6 +176,7 @@ export default function AdminPage() {
         </button>
       </div>
 
+      {/* Teams List */}
       <div className="max-w-2xl mx-auto">
         <h2 className="text-xl font-semibold mb-3">Teams</h2>
         {teams.length === 0 ? (
